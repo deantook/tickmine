@@ -8,6 +8,7 @@ describe('sessionStore', () => {
       accessToken: null,
       email: null,
       userId: null,
+      subscriptionTier: null,
       onboardingComplete: false,
       currentGoalId: null,
       messages: [],

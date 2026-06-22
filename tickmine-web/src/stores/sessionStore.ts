@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ExecutionResult, PlanDsl, ToolCallRecord } from '@/api/types';
+import type { ExecutionResult, PlanDsl, SubscriptionTier, ToolCallRecord } from '@/api/types';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,12 +14,19 @@ interface SessionState {
   accessToken: string | null;
   email: string | null;
   userId: string | null;
+  subscriptionTier: SubscriptionTier | null;
   onboardingComplete: boolean;
   currentGoalId: string | null;
   messages: ChatMessage[];
   isLoading: boolean;
   isAuthenticated: () => boolean;
-  setAuth: (accessToken: string, userId: string, email: string) => void;
+  setAuth: (
+    accessToken: string,
+    userId: string,
+    email: string,
+    subscriptionTier?: SubscriptionTier,
+  ) => void;
+  setSubscriptionTier: (tier: SubscriptionTier) => void;
   clearAuth: () => void;
   completeOnboarding: () => void;
   setGoalId: (goalId: string) => void;
@@ -36,18 +43,22 @@ export const useSessionStore = create<SessionState>()(
       accessToken: null,
       email: null,
       userId: null,
+      subscriptionTier: null,
       onboardingComplete: false,
       currentGoalId: null,
       messages: [],
       isLoading: false,
 
       isAuthenticated: () => Boolean(get().accessToken && get().userId),
-      setAuth: (accessToken, userId, email) => set({ accessToken, userId, email }),
+      setAuth: (accessToken, userId, email, subscriptionTier) =>
+        set({ accessToken, userId, email, subscriptionTier: subscriptionTier ?? 'FREE' }),
+      setSubscriptionTier: (subscriptionTier) => set({ subscriptionTier }),
       clearAuth: () =>
         set({
           accessToken: null,
           email: null,
           userId: null,
+          subscriptionTier: null,
           onboardingComplete: false,
           currentGoalId: null,
           messages: [],
@@ -77,6 +88,7 @@ export const useSessionStore = create<SessionState>()(
         accessToken: s.accessToken,
         email: s.email,
         userId: s.userId,
+        subscriptionTier: s.subscriptionTier,
         onboardingComplete: s.onboardingComplete,
         currentGoalId: s.currentGoalId,
         messages: s.messages,

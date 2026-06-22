@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Logo } from '@/components/layout/Logo';
 import { register } from '@/api/endpoints';
 import { ApiError } from '@/api/client';
+import { parseSubscriptionTier } from '@/lib/subscriptionTier';
 import { useSessionStore } from '@/stores/sessionStore';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -33,7 +34,12 @@ export function RegisterPage() {
     setLoading(true);
     try {
       const res = await register({ email: email.trim(), password });
-      setAuth(res.accessToken, res.userId, res.email);
+      setAuth(
+        res.accessToken,
+        res.userId,
+        res.email,
+        parseSubscriptionTier(res.subscriptionTier) ?? 'FREE',
+      );
       toast.success('注册成功');
       navigate('/onboarding', { replace: true });
     } catch (err) {

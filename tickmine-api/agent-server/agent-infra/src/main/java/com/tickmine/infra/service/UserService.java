@@ -1,11 +1,9 @@
 package com.tickmine.infra.service;
 
 import com.tickmine.domain.exception.TickTickNotConnectedException;
-import com.tickmine.domain.exception.TickTickTokenInvalidException;
 import com.tickmine.domain.exception.UserNotFoundException;
 import com.tickmine.domain.model.TokenStatus;
 import com.tickmine.domain.port.TickTickTokenValidator;
-import com.tickmine.infra.crypto.TokenEncryptor;
 import com.tickmine.infra.persistence.entity.UserEntity;
 import com.tickmine.infra.persistence.mapper.DomainMapper;
 import com.tickmine.infra.persistence.repository.UserRepository;
@@ -19,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final TokenEncryptor tokenEncryptor;
     private final DomainMapper domainMapper;
     private final TickTickTokenValidator tokenValidator;
 
@@ -29,7 +26,7 @@ public class UserService {
         tokenValidator.validate(trimmed);
 
         UserEntity user = findOrCreate(userId);
-        user.setTicktickTokenEnc(tokenEncryptor.encrypt(trimmed));
+        user.setTicktickTokenEnc(trimmed);
         user.setTokenStatus(TokenStatus.CONNECTED);
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
@@ -52,7 +49,17 @@ public class UserService {
         if (user.getTokenStatus() != TokenStatus.CONNECTED || user.getTicktickTokenEnc() == null) {
             throw new TickTickNotConnectedException(userId);
         }
-        return tokenEncryptor.decrypt(user.getTicktickTokenEnc());
+        return user.getTicktickTokenEnc();
+    }
+
+    @Transactional(readOnly = true)
+    public String getStoredTickTickToken(String userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getTokenStatus() != TokenStatus.CONNECTED || user.getTicktickTokenEnc() == null) {
+            return null;
+        }
+        return user.getTicktickTokenEnc();
     }
 
     @Transactional(readOnly = true)

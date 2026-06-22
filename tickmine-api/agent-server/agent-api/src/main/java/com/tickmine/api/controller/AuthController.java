@@ -7,6 +7,7 @@ import com.tickmine.api.dto.RegisterRequest;
 import com.tickmine.api.security.AuthContext;
 import com.tickmine.infra.auth.AuthService;
 import com.tickmine.infra.auth.AuthenticatedUser;
+import com.tickmine.infra.persistence.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,11 +48,17 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponse me() {
         AuthenticatedUser user = authContext.requireCurrentUser();
-        return new MeResponse(user.userId(), user.email());
+        UserEntity entity = authService.requireUser(user.userId());
+        return new MeResponse(
+                user.userId(), user.email(), entity.getSubscriptionTier().name());
     }
 
     private static AuthResponse toResponse(AuthService.AuthResult result) {
         return new AuthResponse(
-                result.accessToken(), result.userId(), result.email(), result.expiresAt());
+                result.accessToken(),
+                result.userId(),
+                result.email(),
+                result.expiresAt(),
+                result.subscriptionTier());
     }
 }

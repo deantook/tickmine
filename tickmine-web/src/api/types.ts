@@ -69,6 +69,7 @@ export interface GoalResponse {
 
 export interface TokenStatusResponse {
   connected: boolean;
+  token: string | null;
 }
 
 export interface BindTokenRequest {
@@ -94,12 +95,16 @@ export interface AuthResponse {
   userId: string;
   email: string;
   expiresAt: string;
+  subscriptionTier: string;
 }
 
 export interface MeResponse {
   userId: string;
   email: string;
+  subscriptionTier: string;
 }
+
+export type SubscriptionTier = 'FREE' | 'VIP' | 'SVIP';
 
 export interface GoalSummary {
   id: string;

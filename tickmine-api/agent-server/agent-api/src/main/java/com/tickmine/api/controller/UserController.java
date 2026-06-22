@@ -45,7 +45,8 @@ public class UserController {
     public TokenStatusDto myTokenStatus() {
         AuthenticatedUser user = authContext.requireCurrentUser();
         TokenStatus status = userService.getTokenStatus(user.userId());
-        return new TokenStatusDto(status == TokenStatus.CONNECTED);
+        String token = userService.getStoredTickTickToken(user.userId());
+        return new TokenStatusDto(status == TokenStatus.CONNECTED, token);
     }
 
     @GetMapping("/me/quota")
@@ -85,7 +86,8 @@ public class UserController {
     public TokenStatusDto tokenStatus(@PathVariable String userId) {
         authContext.requireSameUser(userId);
         TokenStatus status = userService.getTokenStatus(userId);
-        return new TokenStatusDto(status == TokenStatus.CONNECTED);
+        String token = userService.getStoredTickTickToken(userId);
+        return new TokenStatusDto(status == TokenStatus.CONNECTED, token);
     }
 
     /** @deprecated Use {@link #myQuota()} */

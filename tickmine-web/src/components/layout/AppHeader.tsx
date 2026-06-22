@@ -1,18 +1,35 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { Logo } from '@/components/layout/Logo';
+import { SubscriptionTiersDialog } from '@/components/subscription/SubscriptionTiersDialog';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useTokenStatus } from '@/hooks/useTokenStatus';
+import { useSubscriptionTier } from '@/hooks/useSubscriptionTier';
+import { formatSubscriptionTierLabel } from '@/lib/subscriptionTier';
 import { cn } from '@/lib/utils';
 
 export function AppHeader() {
   const startNewChat = useSessionStore((s) => s.startNewChat);
   const connected = useTokenStatus();
+  const tier = useSubscriptionTier();
+  const [tiersOpen, setTiersOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-[#e8e8e4]/80 bg-[#f7f7f5]/90 px-6 backdrop-blur-sm">
+    <>
+      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-[#e8e8e4]/80 bg-[#f7f7f5]/90 px-6 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <Logo showText={false} />
         <span className="text-[14px] font-semibold text-[#1c1c1a]">TickMine</span>
+        {tier && (
+          <button
+            type="button"
+            onClick={() => setTiersOpen(true)}
+            className="rounded border border-[#e8e8e4] px-1.5 py-0.5 text-[11px] text-[#5c5c58] transition-colors hover:border-[#aaa] hover:text-[#1c1c1a]"
+            aria-label="查看付费档位"
+          >
+            {formatSubscriptionTierLabel(tier)}
+          </button>
+        )}
         <span
           className={cn(
             'h-1.5 w-1.5 rounded-full',
@@ -40,6 +57,12 @@ export function AppHeader() {
           设置
         </Link>
       </div>
-    </header>
+      </header>
+      <SubscriptionTiersDialog
+        open={tiersOpen}
+        onOpenChange={setTiersOpen}
+        currentTier={tier}
+      />
+    </>
   );
 }

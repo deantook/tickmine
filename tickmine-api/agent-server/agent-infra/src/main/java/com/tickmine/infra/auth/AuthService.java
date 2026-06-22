@@ -68,7 +68,8 @@ public class AuthService {
                 issued.token(),
                 user.getId(),
                 user.getEmail(),
-                issued.expiresAt().toString());
+                issued.expiresAt().toString(),
+                user.getSubscriptionTier().name());
     }
 
     private static String normalizeEmail(String email) {
@@ -84,5 +85,10 @@ public class AuthService {
         }
     }
 
-    public record AuthResult(String accessToken, String userId, String email, String expiresAt) {}
+    public record AuthResult(
+            String accessToken,
+            String userId,
+            String email,
+            String expiresAt,
+            String subscriptionTier) {}
 }

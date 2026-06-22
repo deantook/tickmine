@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { bindTickTickToken } from '@/api/endpoints';
+import { bindTickTickToken, getTokenStatus } from '@/api/endpoints';
 import { ApiError } from '@/api/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -17,6 +17,14 @@ export function TokenStep({ submitLabel = '连接并进入', onSuccess }: Props)
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    getTokenStatus()
+      .then((r) => {
+        if (r.token) setToken(r.token);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit() {
     if (!token.trim()) return;
@@ -50,7 +58,7 @@ export function TokenStep({ submitLabel = '连接并进入', onSuccess }: Props)
             placeholder="dp_..."
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            type="password"
+            type="text"
           />
         </div>
         <button
