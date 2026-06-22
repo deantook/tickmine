@@ -22,6 +22,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
 
+    /** SseEmitter.send() uses servlet ASYNC dispatch; must re-run JWT auth on that dispatch. */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

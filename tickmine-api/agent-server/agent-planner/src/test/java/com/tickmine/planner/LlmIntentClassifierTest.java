@@ -58,6 +58,17 @@ class LlmIntentClassifierTest {
     }
 
     @Test
+    void classify_planReadyPhase_returnsPlanWithoutLlm() {
+        IntentClassification result = classifier.classify(
+                "user-1",
+                "再加一个蜜月旅行环节",
+                GoalPhase.PLAN_READY,
+                List.of(new ChatMessage("user", "我想策划婚礼", Instant.now())));
+
+        assertThat(result.intent()).isEqualTo(ChatIntent.PLAN);
+    }
+
+    @Test
     void classify_queryDuringCollecting_returnsQuery() {
         IntentClassification result = classifier.classify(
                 "user-1",

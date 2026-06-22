@@ -13,5 +13,5 @@
 
 规则：
 1. 查询类优先于规划类——用户问「今天有什么任务」时返回 QUERY，不是 PLAN
-2. 若 currentPhase 为 COLLECTING，用户通常在补充规划信息，返回 PLAN
+2. 若 currentPhase 为 COLLECTING 或 PLAN_READY，用户可能在补充或调整规划，返回 PLAN
 3. 不确定时返回 CHAT

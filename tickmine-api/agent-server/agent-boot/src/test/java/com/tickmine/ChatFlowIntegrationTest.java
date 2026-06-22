@@ -133,32 +133,10 @@ class ChatFlowIntegrationTest {
 
         when(goalAnalysisService.analyze(eq(userId), any(Goal.class), anyList()))
                 .thenReturn(new GoalAnalysis(
-                        false,
-                        List.of("budget"),
+                        true,
+                        List.of(),
                         Map.of("city", "上海"),
                         "上海婚礼策划"));
-
-        doAnswer(invocation -> {
-                    java.util.function.Consumer<String> consumer = invocation.getArgument(3);
-                    consumer.accept("请告诉我您的预算范围？");
-                    return null;
-                })
-                .when(agentChatService)
-                .streamChat(eq(userId), anyString(), anyString(), any());
-
-        MvcResult collectingResult = mockMvc.perform(post("/api/chat")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"userId":"%s","message":"我想在上海策划一场婚礼"}
-                                """.formatted(userId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.phase").value("COLLECTING"))
-                .andExpect(jsonPath("$.reply").value("请告诉我您的预算范围？"))
-                .andExpect(jsonPath("$.missingFields[0]").value("budget"))
-                .andReturn();
-
-        UUID goalId = readGoalId(collectingResult);
 
         PlanDsl plan = new PlanDsl(
                 "上海婚礼计划",
@@ -166,25 +144,21 @@ class ChatFlowIntegrationTest {
                         "场地筹备",
                         List.of(new TaskDsl("预订场地", "联系并预订婚礼场地", "high", null, null, List.of())))));
 
-        when(goalAnalysisService.analyze(eq(userId), any(Goal.class), anyList()))
-                .thenReturn(new GoalAnalysis(
-                        true,
-                        List.of(),
-                        Map.of("budget", 100000, "city", "上海"),
-                        "上海婚礼策划"));
-
         when(planner.generatePlan(any(Goal.class), any(GoalContext.class))).thenReturn(plan);
 
-        mockMvc.perform(post("/api/chat")
+        MvcResult planReadyResult = mockMvc.perform(post("/api/chat")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"userId":"%s","message":"预算10万","goalId":"%s"}
-                                """.formatted(userId, goalId)))
+                                {"userId":"%s","message":"我想在上海策划一场婚礼"}
+                                """.formatted(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phase").value("PLAN_READY"))
                 .andExpect(jsonPath("$.plan.projectName").value("上海婚礼计划"))
-                .andExpect(jsonPath("$.plan.milestones[0].name").value("场地筹备"));
+                .andExpect(jsonPath("$.plan.milestones[0].name").value("场地筹备"))
+                .andReturn();
+
+        UUID goalId = readGoalId(planReadyResult);
 
         when(tickTickClient.createProject("上海婚礼计划", TOKEN)).thenReturn("proj-1");
         when(tickTickClient.createTask(any(TickTickTaskRequest.class), eq(TOKEN)))

@@ -181,28 +181,6 @@ public class GoalAgentService {
         }
         applyExtractedTargetDate(goal);
 
-        if (!analysis.isComplete()) {
-            goal.setPhase(GoalPhase.COLLECTING);
-            ReplySource replySource = new LlmReplySource(
-                    userId,
-                    CHAT_SYSTEM_PROMPT,
-                    promptLoader.load(
-                            "follow-up.st",
-                            Map.of(
-                                    "title", nullToEmpty(goal.getTitle()),
-                                    "missingFields", formatMissingFields(analysis.missingFields()),
-                                    "attributes",
-                                            formatAttributes(goal.getContext().getAttributes()))));
-            return new ChatStreamPrepareResult(
-                    goal,
-                    userId,
-                    replySource,
-                    GoalPhase.COLLECTING,
-                    null,
-                    analysis.missingFields(),
-                    List.of());
-        }
-
         PlanDsl plan = planner.generatePlan(goal, goal.getContext());
         savePlan(goal.getId(), plan);
         goal.setPhase(GoalPhase.PLAN_READY);
@@ -396,7 +374,9 @@ public class GoalAgentService {
     private Goal resolveGoalForIntent(
             String userId, String message, Goal existingGoal, ChatIntent intent) {
         if (intent == ChatIntent.PLAN) {
-            if (existingGoal != null && existingGoal.getPhase() == GoalPhase.COLLECTING) {
+            if (existingGoal != null
+                    && (existingGoal.getPhase() == GoalPhase.COLLECTING
+                            || existingGoal.getPhase() == GoalPhase.PLAN_READY)) {
                 return existingGoal;
             }
             return createGoalEntity(userId, message, GoalPhase.COLLECTING);
@@ -522,13 +502,6 @@ public class GoalAgentService {
 
     private static String nullToEmpty(String value) {
         return value != null ? value : "";
-    }
-
-    private static String formatMissingFields(List<String> missingFields) {
-        if (missingFields == null || missingFields.isEmpty()) {
-            return "（暂无）";
-        }
-        return String.join(", ", missingFields);
     }
 
     public record GoalDetail(Goal goal, PlanDsl latestPlan) {}

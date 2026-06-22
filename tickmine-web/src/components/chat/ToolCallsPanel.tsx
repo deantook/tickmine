@@ -19,10 +19,11 @@ export function ToolCallsPanel({ toolCalls, className }: Props) {
   if (!toolCalls.length) return null;
 
   return (
-    <div className={cn('space-y-2', className)}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#8a8a84]">
+    <details className={cn(className)}>
+      <summary className="cursor-pointer list-none text-[11px] font-medium uppercase tracking-[0.18em] text-[#8a8a84] [&::-webkit-details-marker]:hidden">
         tool call ({toolCalls.length})
-      </p>
+      </summary>
+      <div className="mt-2 space-y-2">
       {toolCalls.map((call, index) => (
         <details
           key={`${call.name}-${index}`}
@@ -57,6 +58,7 @@ export function ToolCallsPanel({ toolCalls, className }: Props) {
           </div>
         </details>
       ))}
-    </div>
+      </div>
+    </details>
   );
 }

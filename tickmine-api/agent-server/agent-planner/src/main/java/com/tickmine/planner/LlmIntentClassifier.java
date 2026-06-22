@@ -55,7 +55,7 @@ public class LlmIntentClassifier implements IntentClassifier {
         if (PLAN_PATTERN.matcher(text).find()) {
             return new IntentClassification(ChatIntent.PLAN);
         }
-        if (currentPhase == GoalPhase.COLLECTING) {
+        if (currentPhase == GoalPhase.COLLECTING || currentPhase == GoalPhase.PLAN_READY) {
             return new IntentClassification(ChatIntent.PLAN);
         }
         return null;
