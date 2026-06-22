@@ -99,3 +99,24 @@ export interface MeResponse {
   userId: string;
   email: string;
 }
+
+export interface GoalSummary {
+  id: string;
+  title: string | null;
+  preview: string;
+  phase: string;
+  updatedAt: string;
+}
+
+export interface ServerChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string | null;
+}
+
+export interface ConversationResponse {
+  goalId: string;
+  phase: string;
+  latestPlan: PlanDsl | null;
+  messages: ServerChatMessage[];
+}

@@ -36,6 +36,17 @@ public class ConversationCache {
         redis.opsForValue().set(key(userId, goalId), serialize(trimmed), TTL);
     }
 
+    public void evict(String userId, UUID goalId) {
+        redis.delete(key(userId, goalId));
+    }
+
+    public void evictAllForUser(String userId) {
+        var keys = redis.keys("conversation:" + userId + ":*");
+        if (keys != null && !keys.isEmpty()) {
+            redis.delete(keys);
+        }
+    }
+
     private String key(String userId, UUID goalId) {
         return "conversation:" + userId + ":" + goalId;
     }

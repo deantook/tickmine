@@ -24,6 +24,7 @@ interface SessionState {
   completeOnboarding: () => void;
   setGoalId: (goalId: string) => void;
   startNewChat: () => void;
+  loadSession: (goalId: string, messages: ChatMessage[]) => void;
   appendMessage: (message: ChatMessage) => void;
   updateLastAssistant: (patch: Partial<ChatMessage>) => void;
   setLoading: (loading: boolean) => void;
@@ -55,6 +56,8 @@ export const useSessionStore = create<SessionState>()(
       completeOnboarding: () => set({ onboardingComplete: true }),
       setGoalId: (goalId) => set({ currentGoalId: goalId }),
       startNewChat: () => set({ currentGoalId: null, messages: [], isLoading: false }),
+      loadSession: (goalId, messages) =>
+        set({ currentGoalId: goalId, messages, isLoading: false }),
       appendMessage: (message) => set({ messages: [...get().messages, message] }),
       updateLastAssistant: (patch) => {
         const messages = [...get().messages];

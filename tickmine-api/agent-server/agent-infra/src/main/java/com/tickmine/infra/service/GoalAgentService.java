@@ -36,6 +36,7 @@ import com.tickmine.infra.service.ChatStreamPrepareResult.LlmReplySource;
 import com.tickmine.infra.service.ChatStreamPrepareResult.ReplySource;
 import com.tickmine.infra.service.ChatStreamPrepareResult.StaticReplySource;
 import java.time.Instant;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -257,6 +258,69 @@ public class GoalAgentService {
         return new GoalDetail(mapper.toDomain(entity), latestPlan);
     }
 
+    @Transactional(readOnly = true)
+    public List<GoalListItem> listGoals(String userId) {
+        return goalRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
+                .map(entity -> new GoalListItem(
+                        mapper.toDomain(entity),
+                        buildPreview(userId, entity.getId(), entity),
+                        entity.getUpdatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GoalConversation getConversation(String userId, UUID goalId) {
+        GoalDetail detail = getGoalDetail(goalId);
+        if (!detail.goal().getUserId().equals(userId)) {
+            throw new GoalNotFoundException(goalId);
+        }
+        List<ChatMessage> messages = conversationService.loadHistory(userId, goalId);
+        return new GoalConversation(detail.goal(), detail.latestPlan(), messages);
+    }
+
+    @Transactional
+    public void deleteGoal(String userId, UUID goalId) {
+        GoalEntity entity = goalRepository
+                .findById(goalId)
+                .orElseThrow(() -> new GoalNotFoundException(goalId));
+        if (!entity.getUserId().equals(userId)) {
+            throw new GoalNotFoundException(goalId);
+        }
+        removeGoalData(userId, goalId);
+    }
+
+    @Transactional
+    public void deleteAllGoals(String userId) {
+        List<GoalEntity> goals = goalRepository.findByUserId(userId);
+        for (GoalEntity goal : goals) {
+            removeGoalData(userId, goal.getId());
+        }
+    }
+
+    private void removeGoalData(String userId, UUID goalId) {
+        List<PlanEntity> plans = planRepository.findByGoalId(goalId);
+        if (!plans.isEmpty()) {
+            planExecutionRepository.deleteByPlanIdIn(
+                    plans.stream().map(PlanEntity::getId).toList());
+        }
+        planRepository.deleteByGoalId(goalId);
+        conversationService.deleteConversation(userId, goalId);
+        goalRepository.deleteById(goalId);
+    }
+
+    private String buildPreview(String userId, UUID goalId, GoalEntity goal) {
+        String title = goal.getTitle();
+        if (title != null && !title.isBlank()) {
+            return truncate(title, 80);
+        }
+        return conversationService.loadHistory(userId, goalId).stream()
+                .filter(msg -> "user".equals(msg.role()))
+                .map(ChatMessage::content)
+                .findFirst()
+                .map(content -> truncate(content, 80))
+                .orElse("新对话");
+    }
+
     @Transactional
     public PlanDsl regeneratePlan(UUID goalId) {
         GoalEntity entity = goalRepository
@@ -468,6 +532,10 @@ public class GoalAgentService {
     }
 
     public record GoalDetail(Goal goal, PlanDsl latestPlan) {}
+
+    public record GoalListItem(Goal goal, String preview, Instant updatedAt) {}
+
+    public record GoalConversation(Goal goal, PlanDsl latestPlan, List<ChatMessage> messages) {}
 
     private static String formatAttributes(Map<String, Object> attributes) {
         if (attributes == null || attributes.isEmpty()) {

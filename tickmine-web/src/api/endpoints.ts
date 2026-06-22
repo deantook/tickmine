@@ -7,8 +7,10 @@ import type {
   BindTokenResponse,
   ChatRequest,
   ChatResponse,
+  ConversationResponse,
   ExecutionResult,
   GoalResponse,
+  GoalSummary,
   LoginRequest,
   MeResponse,
   RegisterRequest,
@@ -65,6 +67,22 @@ export function executeGoal(goalId: string) {
   return apiFetch<ExecutionResult>(`/api/goals/${goalId}/execute`, {
     method: 'POST',
   });
+}
+
+export function listGoals() {
+  return apiFetch<GoalSummary[]>('/api/users/me/goals');
+}
+
+export function getConversation(goalId: string) {
+  return apiFetch<ConversationResponse>(`/api/goals/${goalId}/conversation`);
+}
+
+export function deleteGoal(goalId: string) {
+  return apiFetch<void>(`/api/goals/${goalId}`, { method: 'DELETE' });
+}
+
+export function deleteAllGoals() {
+  return apiFetch<void>('/api/users/me/goals', { method: 'DELETE' });
 }
 
 export { authHeaders };

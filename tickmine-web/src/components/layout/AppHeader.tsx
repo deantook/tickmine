@@ -9,7 +9,7 @@ export function AppHeader() {
   const connected = useTokenStatus();
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e8e8e4]/80 bg-[#f7f7f5]/90 px-6 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-[#e8e8e4]/80 bg-[#f7f7f5]/90 px-6 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <Logo showText={false} />
         <span className="text-[14px] font-semibold text-[#1c1c1a]">TickMine</span>

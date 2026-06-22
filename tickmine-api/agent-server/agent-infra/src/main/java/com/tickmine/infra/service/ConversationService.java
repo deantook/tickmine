@@ -55,4 +55,16 @@ public class ConversationService {
 
         cache.put(userId, goalId, history);
     }
+
+    @Transactional
+    public void deleteConversation(String userId, UUID goalId) {
+        conversationRepository.deleteByUserIdAndGoalId(userId, goalId);
+        cache.evict(userId, goalId);
+    }
+
+    @Transactional
+    public void deleteAllForUser(String userId) {
+        conversationRepository.deleteByUserId(userId);
+        cache.evictAllForUser(userId);
+    }
 }
