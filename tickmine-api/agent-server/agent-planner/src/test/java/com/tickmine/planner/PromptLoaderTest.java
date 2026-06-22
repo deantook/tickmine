@@ -37,8 +37,10 @@ class PromptLoaderTest {
                 "title", "蜜月旅行",
                 "description", "日本七日游",
                 "attributes", "budget: 3万",
+                "planScope", "standard",
                 "targetDate", "2026-10-01",
-                "todayDate", "2026-06-22"));
+                "todayDate", "2026-06-22",
+                "conversation", "user: 想去日本玩七天"));
 
         assertThat(rendered).contains("蜜月旅行");
         assertThat(rendered).contains("2026-10-01");

@@ -1,5 +1,6 @@
 package com.tickmine.infra.service;
 
+import com.tickmine.domain.model.AgentRunRequest;
 import com.tickmine.domain.model.Goal;
 import com.tickmine.domain.model.GoalPhase;
 import com.tickmine.domain.model.PlanDsl;
@@ -13,12 +14,25 @@ public record ChatStreamPrepareResult(
         GoalPhase responsePhase,
         PlanDsl plan,
         List<String> missingFields,
-        List<ToolCallRecord> toolCalls) {
+        List<ToolCallRecord> toolCalls,
+        AgentRunRequest agentRequest) {
 
-    public sealed interface ReplySource permits LlmReplySource, StaticReplySource {}
+    public ChatStreamPrepareResult(
+            Goal goal,
+            String userId,
+            ReplySource replySource,
+            GoalPhase responsePhase,
+            PlanDsl plan,
+            List<String> missingFields,
+            List<ToolCallRecord> toolCalls) {
+        this(goal, userId, replySource, responsePhase, plan, missingFields, toolCalls, null);
+    }
 
-    public record LlmReplySource(String userId, String systemPrompt, String userPrompt)
-            implements ReplySource {}
+    public sealed interface ReplySource permits AgentStreamReplySource, LlmReplySource, StaticReplySource {}
+
+    public record AgentStreamReplySource(AgentRunRequest request) implements ReplySource {}
+
+    public record LlmReplySource(String userId, String systemPrompt, String userPrompt) implements ReplySource {}
 
     public record StaticReplySource(String text) implements ReplySource {}
 }

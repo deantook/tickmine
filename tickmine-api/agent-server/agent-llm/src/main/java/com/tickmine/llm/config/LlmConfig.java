@@ -8,10 +8,15 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableConfigurationProperties(TickMineProperties.class)
+@RequiredArgsConstructor
 public class LlmConfig {
+
+    private final RestClient.Builder llmRestClientBuilder;
 
     @Bean
     public ChatModel deepseekChatModel(TickMineProperties props) {
@@ -20,20 +25,7 @@ public class LlmConfig {
                 .openAiApi(OpenAiApi.builder()
                         .baseUrl(cfg.getBaseUrl())
                         .apiKey(props.getLlm().getDeepseekApiKey())
-                        .build())
-                .defaultOptions(OpenAiChatOptions.builder()
-                        .model(cfg.getModel())
-                        .build())
-                .build();
-    }
-
-    @Bean
-    public ChatModel qwenChatModel(TickMineProperties props) {
-        var cfg = props.getModels().get("SVIP");
-        return OpenAiChatModel.builder()
-                .openAiApi(OpenAiApi.builder()
-                        .baseUrl(cfg.getBaseUrl())
-                        .apiKey(props.getLlm().getQwenApiKey())
+                        .restClientBuilder(llmRestClientBuilder)
                         .build())
                 .defaultOptions(OpenAiChatOptions.builder()
                         .model(cfg.getModel())

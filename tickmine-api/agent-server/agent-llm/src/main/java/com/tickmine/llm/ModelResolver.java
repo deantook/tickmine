@@ -18,14 +18,11 @@ public class ModelResolver {
     private final UserRepository userRepository;
     @Qualifier("deepseekChatModel")
     private final ChatModel deepseekChatModel;
-    @Qualifier("qwenChatModel")
-    private final ChatModel qwenChatModel;
     private final TickMineProperties props;
 
     public ChatModel resolve(String userId) {
-        UserEntity user = requireUser(userId);
-        ModelConfig cfg = props.getModels().get(user.getSubscriptionTier().name());
-        return "qwen".equals(cfg.getProvider()) ? qwenChatModel : deepseekChatModel;
+        requireUser(userId);
+        return deepseekChatModel;
     }
 
     public String resolveModelName(String userId) {
@@ -35,6 +32,10 @@ public class ModelResolver {
 
     public SubscriptionTier resolveTier(String userId) {
         return requireUser(userId).getSubscriptionTier();
+    }
+
+    public String resolveModelNameForTier(SubscriptionTier tier) {
+        return props.getModels().get(tier.name()).getModel();
     }
 
     private UserEntity requireUser(String userId) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -9,13 +9,16 @@ interface Props {
 export function ChatInput({ disabled, onSend }: Props) {
   const [text, setText] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed || disabled) return;
-    onSend(trimmed);
-    setText('');
-  }
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = text.trim();
+      if (!trimmed || disabled) return;
+      onSend(trimmed);
+      setText('');
+    },
+    [text, disabled, onSend],
+  );
 
   return (
     <form

@@ -1,5 +1,4 @@
-import { apiFetch } from './client';
-import { authHeaders } from './client';
+import { apiFetch, ApiError, authHeaders } from './client';
 import { sendChatStream } from './sse';
 import type {
   AuthResponse,

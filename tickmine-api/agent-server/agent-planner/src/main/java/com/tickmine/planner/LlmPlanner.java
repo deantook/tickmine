@@ -23,14 +23,20 @@ public class LlmPlanner implements Planner {
         String targetDate = goal.getTargetDate() != null
                 ? goal.getTargetDate().toString()
                 : "（未指定，默认今天）";
+        String planScope = "standard";
+        if (attributes.get("planScope") instanceof String scope && !scope.isBlank()) {
+            planScope = scope;
+        }
         String prompt = promptLoader.load("planner.st", Map.of(
                 "title", nullToEmpty(goal.getTitle()),
                 "description", nullToEmpty(goal.getDescription()),
                 "attributes", PromptVariables.formatAttributes(attributes),
+                "planScope", planScope,
                 "targetDate", targetDate,
-                "todayDate", LocalDate.now().toString()));
+                "todayDate", LocalDate.now().toString(),
+                "conversation", nullToEmpty(goal.getDescription())));
         return chatService.structuredOutput(
-                goal.getUserId(), "你是项目规划师。", prompt, PlanDsl.class);
+                goal.getUserId(), "你是任务规划师，严格按 planScope 控制计划粒度。", prompt, PlanDsl.class);
     }
 
     private static String nullToEmpty(String value) {

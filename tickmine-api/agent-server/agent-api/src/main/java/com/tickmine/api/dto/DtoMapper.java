@@ -7,6 +7,7 @@ import com.tickmine.domain.model.QuotaStatus;
 import com.tickmine.infra.service.GoalAgentService.GoalConversation;
 import com.tickmine.infra.service.GoalAgentService.GoalDetail;
 import com.tickmine.infra.service.GoalAgentService.GoalListItem;
+import java.util.List;
 
 public final class DtoMapper {
 

@@ -38,16 +38,16 @@ tickmine:
   models:
     FREE:
       provider: deepseek
-      model: deepseek-chat
+      model: deepseek-v4-pro
       base-url: https://api.deepseek.com
     VIP:
       provider: deepseek
-      model: deepseek-chat
+      model: deepseek-v4-pro
       base-url: https://api.deepseek.com
     SVIP:
-      provider: qwen
-      model: qwen-plus
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      provider: deepseek
+      model: deepseek-v4-pro
+      base-url: https://api.deepseek.com
   quota:
     FREE:
       daily-chat-limit: 10
@@ -60,7 +60,8 @@ tickmine:
     token-ttl-hours: 168
   llm:
     deepseek-api-key: ${DEEPSEEK_API_KEY}
-    qwen-api-key: ${QWEN_API_KEY}
+    read-timeout-seconds: 180
+    connect-timeout-seconds: 30
   ticktick:
     # 滴答清单（国内版）用 dida365；国际版 TickTick 改为 https://api.ticktick.com/open/v1
     base-url: https://api.dida365.com/open/v1

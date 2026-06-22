@@ -25,7 +25,9 @@ export function MessageBubble({ message, goalId, onExecute, messageIndex, execut
             : 'border-l-2 border-[#dcdcd8] pl-4 text-[#2d2d2a]',
         )}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {message.content && (
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        )}
         {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
           <ToolCallsPanel toolCalls={message.toolCalls} className="mt-3" />
         )}

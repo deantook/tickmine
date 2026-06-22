@@ -28,9 +28,6 @@ class ModelResolverTest {
     @Mock
     private ChatModel deepseekChatModel;
 
-    @Mock
-    private ChatModel qwenChatModel;
-
     private TickMineProperties props;
     private ModelResolver modelResolver;
 
@@ -40,8 +37,8 @@ class ModelResolverTest {
         props.setModels(Map.of(
                 "FREE", modelConfig("deepseek", "deepseek-chat"),
                 "VIP", modelConfig("deepseek", "deepseek-chat"),
-                "SVIP", modelConfig("qwen", "qwen-plus")));
-        modelResolver = new ModelResolver(userRepository, deepseekChatModel, qwenChatModel, props);
+                "SVIP", modelConfig("deepseek", "deepseek-chat")));
+        modelResolver = new ModelResolver(userRepository, deepseekChatModel, props);
     }
 
     @Test
@@ -61,11 +58,11 @@ class ModelResolverTest {
     }
 
     @Test
-    void resolve_svipUser_returnsQwenModel() {
+    void resolve_svipUser_returnsDeepseekModel() {
         when(userRepository.findById("user-svip")).thenReturn(Optional.of(user("user-svip", SubscriptionTier.SVIP)));
 
-        assertThat(modelResolver.resolve("user-svip")).isSameAs(qwenChatModel);
-        assertThat(modelResolver.resolveModelName("user-svip")).isEqualTo("qwen-plus");
+        assertThat(modelResolver.resolve("user-svip")).isSameAs(deepseekChatModel);
+        assertThat(modelResolver.resolveModelName("user-svip")).isEqualTo("deepseek-chat");
     }
 
     @Test

@@ -60,7 +60,7 @@ class LlmPlannerTest {
                                 null,
                                 List.of())))));
         when(chatService.structuredOutput(
-                eq("user-1"), eq("你是项目规划师。"), any(), eq(PlanDsl.class)))
+                eq("user-1"), eq("你是任务规划师，严格按 planScope 控制计划粒度。"), any(), eq(PlanDsl.class)))
                 .thenReturn(expected);
 
         PlanDsl result = llmPlanner.generatePlan(goal, context);
@@ -69,7 +69,10 @@ class LlmPlannerTest {
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(chatService).structuredOutput(
-                eq("user-1"), eq("你是项目规划师。"), promptCaptor.capture(), eq(PlanDsl.class));
+                eq("user-1"),
+                eq("你是任务规划师，严格按 planScope 控制计划粒度。"),
+                promptCaptor.capture(),
+                eq(PlanDsl.class));
 
         String prompt = promptCaptor.getValue();
         assertThat(prompt).contains("策划婚礼");
@@ -77,8 +80,7 @@ class LlmPlannerTest {
         assertThat(prompt).contains("city: 上海");
         assertThat(prompt).contains("guestCount: 150");
         assertThat(prompt).contains("2026-10-01");
-        assertThat(prompt).contains("2026-06-22");
-        assertThat(prompt).contains("任务顺序");
+        assertThat(prompt).contains("planScope: standard");
         assertThat(prompt).contains("estimatedDuration");
     }
 }

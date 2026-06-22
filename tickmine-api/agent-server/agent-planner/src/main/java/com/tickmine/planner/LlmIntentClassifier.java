@@ -23,7 +23,9 @@ public class LlmIntentClassifier implements IntentClassifier {
                     + "|((待办|todo|任务|清单).*(有哪些|列表|看看|查))",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PLAN_PATTERN = Pattern.compile(
-            "(策划|规划|帮我.*计划|制定.*计划|安排|筹备|组织|准备.*(婚礼|旅行|活动|项目|考试|搬家))",
+            "(策划|规划|帮我.*计划|制定.*计划|安排|筹备|组织|准备.*(婚礼|旅行|活动|项目|考试|搬家|团建))"
+                    + "|((写入|创建|导入|同步|添加).*(清单|项目|列表|待办|滴答))"
+                    + "|(.*(清单|项目).*(安排|创建|写入))",
             Pattern.CASE_INSENSITIVE);
     /** User states a future action with time/place — schedule a task, not query existing todos. */
     private static final Pattern SCHEDULE_PATTERN = Pattern.compile(

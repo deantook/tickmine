@@ -26,7 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private static final long SSE_TIMEOUT_MS = 120_000L;
+    private static final long SSE_TIMEOUT_MS = 300_000L;
 
     private final GoalAgentService goalAgentService;
     private final ChatSseEmitter chatSseEmitter;
@@ -37,7 +37,9 @@ public class ChatController {
     public ChatResponseDto chat(@RequestBody ChatRequest request) {
         authContext.requireSameUser(request.userId());
         return DtoMapper.toDto(goalAgentService.handleChat(
-                request.userId(), request.message(), request.goalId()));
+                request.userId(),
+                request.message(),
+                request.goalId()));
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -51,7 +53,9 @@ public class ChatController {
     private void runStreamChat(ChatRequest request, SseEmitter emitter) {
         try {
             ChatStreamPrepareResult prep = goalAgentService.prepareStreamChat(
-                    request.userId(), request.message(), request.goalId());
+                    request.userId(),
+                    request.message(),
+                    request.goalId());
             streamReply(prep, emitter);
         } catch (Exception exception) {
             log.warn("Chat stream prepare failed userId={}", request.userId(), exception);

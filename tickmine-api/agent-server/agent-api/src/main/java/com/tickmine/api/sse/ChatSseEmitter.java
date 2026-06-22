@@ -3,6 +3,7 @@ package com.tickmine.api.sse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tickmine.api.dto.ChatResponseDto;
 import com.tickmine.api.dto.DtoMapper;
+import com.tickmine.domain.exception.AccessDeniedException;
 import com.tickmine.domain.exception.GoalNotFoundException;
 import com.tickmine.domain.exception.InvalidGoalPhaseException;
 import com.tickmine.domain.exception.QuotaExceededException;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Component
@@ -77,6 +79,20 @@ public class ChatSseEmitter {
             }
             return new ChatErrorEvent(
                     "TICKTICK_API_ERROR", tickTickApi.getMessage(), HttpStatus.BAD_GATEWAY.value());
+        }
+        if (exception instanceof AccessDeniedException accessDenied) {
+            return new ChatErrorEvent(
+                    "ACCESS_DENIED", accessDenied.getMessage(), HttpStatus.FORBIDDEN.value());
+        }
+        if (exception instanceof IllegalArgumentException illegalArgument) {
+            return new ChatErrorEvent(
+                    "VALIDATION_ERROR", illegalArgument.getMessage(), HttpStatus.BAD_REQUEST.value());
+        }
+        if (exception instanceof ResourceAccessException) {
+            return new ChatErrorEvent(
+                    "LLM_TIMEOUT",
+                    "AI 服务响应超时，请稍后重试",
+                    HttpStatus.GATEWAY_TIMEOUT.value());
         }
         return new ChatErrorEvent(
                 "UNKNOWN",

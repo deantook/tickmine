@@ -27,9 +27,9 @@ tickmine:
       model: deepseek-chat
       base-url: https://api.deepseek.com
     SVIP:
-      provider: qwen
-      model: qwen-plus
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      provider: deepseek
+      model: deepseek-chat
+      base-url: https://api.deepseek.com
   quota:
     FREE:
       daily-chat-limit: 10
@@ -39,7 +39,6 @@ tickmine:
       daily-chat-limit: -1
   llm:
     deepseek-api-key: test-deepseek-key
-    qwen-api-key: test-qwen-key
   auth:
     jwt-secret: MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUYwMTIzNDU2Nzg5QUJDREVG
     token-ttl-hours: 168

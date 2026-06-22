@@ -2,9 +2,6 @@ package com.tickmine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,24 +11,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tickmine.domain.model.ChatIntent;
-import com.tickmine.domain.model.Goal;
-import com.tickmine.domain.model.GoalAnalysis;
-import com.tickmine.domain.model.GoalContext;
-import com.tickmine.domain.model.IntentClassification;
+import com.tickmine.domain.model.AgentRunRequest;
+import com.tickmine.domain.model.GoalPhase;
 import com.tickmine.domain.model.MilestoneDsl;
 import com.tickmine.domain.model.PlanDsl;
 import com.tickmine.domain.model.TaskDsl;
-import com.tickmine.domain.port.GoalAnalysisService;
-import com.tickmine.domain.port.IntentClassifier;
-import com.tickmine.domain.port.Planner;
-import com.tickmine.domain.port.TaskQueryService;
+import com.tickmine.domain.port.AgentOrchestrator;
 import com.tickmine.domain.port.TickTickClient;
 import com.tickmine.domain.port.TickTickTaskRequest;
-import com.tickmine.llm.AgentChatService;
+import com.tickmine.domain.port.Planner;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,16 +77,7 @@ class ChatFlowIntegrationTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private GoalAnalysisService goalAnalysisService;
-
-    @MockitoBean
-    private IntentClassifier intentClassifier;
-
-    @MockitoBean
-    private TaskQueryService taskQueryService;
-
-    @MockitoBean
-    private AgentChatService agentChatService;
+    private AgentOrchestrator agentOrchestrator;
 
     @MockitoBean
     private Planner planner;
@@ -128,23 +110,20 @@ class ChatFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CONNECTED"));
 
-        when(intentClassifier.classify(eq(userId), anyString(), any(), anyList()))
-                .thenReturn(new IntentClassification(ChatIntent.PLAN));
-
-        when(goalAnalysisService.analyze(eq(userId), any(Goal.class), anyList()))
-                .thenReturn(new GoalAnalysis(
-                        true,
-                        List.of(),
-                        Map.of("city", "上海"),
-                        "上海婚礼策划"));
-
         PlanDsl plan = new PlanDsl(
                 "上海婚礼计划",
                 List.of(new MilestoneDsl(
                         "场地筹备",
                         List.of(new TaskDsl("预订场地", "联系并预订婚礼场地", "high", null, null, List.of())))));
 
-        when(planner.generatePlan(any(Goal.class), any(GoalContext.class))).thenReturn(plan);
+        doAnswer(invocation -> {
+            AgentRunRequest request = invocation.getArgument(0);
+            @SuppressWarnings("unchecked")
+            Consumer<String> onDelta = invocation.getArgument(1);
+            onDelta.accept("已为您生成计划「上海婚礼计划」，请确认后写入。");
+            request.onPlanProposed().accept(request.goal(), plan);
+            return null;
+        }).when(agentOrchestrator).streamRun(any(), any());
 
         MvcResult planReadyResult = mockMvc.perform(post("/api/chat")
                         .header("Authorization", "Bearer " + accessToken)
@@ -161,7 +140,7 @@ class ChatFlowIntegrationTest {
         UUID goalId = readGoalId(planReadyResult);
 
         when(tickTickClient.createProject("上海婚礼计划", TOKEN)).thenReturn("proj-1");
-        when(tickTickClient.createTask(any(TickTickTaskRequest.class), eq(TOKEN)))
+        when(tickTickClient.createTask(any(TickTickTaskRequest.class), org.mockito.ArgumentMatchers.eq(TOKEN)))
                 .thenReturn("milestone-1", "task-1");
 
         mockMvc.perform(post("/api/goals/" + goalId + "/execute")
@@ -175,10 +154,12 @@ class ChatFlowIntegrationTest {
 
     @Test
     void chatFlow_queryTodayTasks_returnsChatPhase() throws Exception {
-        when(intentClassifier.classify(eq(userId), anyString(), any(), anyList()))
-                .thenReturn(new IntentClassification(ChatIntent.QUERY));
-        when(taskQueryService.answerQuery(userId, "我今天有哪些任务"))
-                .thenReturn("你今天有 1 项待办：\n1. 写报告（收集箱）");
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Consumer<String> onDelta = invocation.getArgument(1);
+            onDelta.accept("你今天有 1 项待办：\n1. 写报告（收集箱）");
+            return null;
+        }).when(agentOrchestrator).streamRun(any(), any());
 
         mockMvc.perform(post("/api/chat")
                         .header("Authorization", "Bearer " + accessToken)

@@ -19,7 +19,6 @@ export function useChat() {
   } = useSessionStore();
   const [executing, setExecuting] = useState(false);
 
-  // 刷新后同步 goal 状态到已有 assistant 消息上的 plan
   useEffect(() => {
     if (!currentGoalId || messages.length === 0) return;
     getGoal(currentGoalId)
@@ -80,6 +79,7 @@ export function useChat() {
       } catch (e) {
         if (e instanceof ApiError) {
           if (e.status === 429) toast.error('今日对话次数已用完');
+          else if (e.code === 'LLM_TIMEOUT') toast.error(e.message);
           else if (e.code === 'TICKTICK_NOT_CONNECTED' || e.code === 'TICKTICK_TOKEN_INVALID') {
             toast.error(e.code === 'TICKTICK_TOKEN_INVALID' ? '滴答 Token 已失效，请重新绑定' : '请先绑定滴答 Token');
             navigate('/settings');

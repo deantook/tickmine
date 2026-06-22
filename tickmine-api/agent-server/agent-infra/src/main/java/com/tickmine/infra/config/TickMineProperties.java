@@ -44,6 +44,9 @@ public class TickMineProperties {
     @Data
     public static class LlmKeys {
         private String deepseekApiKey;
-        private String qwenApiKey;
+        /** HTTP read timeout for LLM API calls (seconds). Default 180. */
+        private int readTimeoutSeconds = 180;
+        /** HTTP connect timeout for LLM API calls (seconds). Default 30. */
+        private int connectTimeoutSeconds = 30;
     }
 }

@@ -2,27 +2,21 @@ package com.tickmine.infra.service;
 
 import com.tickmine.domain.exception.GoalNotFoundException;
 import com.tickmine.domain.exception.InvalidGoalPhaseException;
-import com.tickmine.domain.model.ChatIntent;
+import com.tickmine.domain.model.AgentRunOutcome;
+import com.tickmine.domain.model.AgentRunRequest;
 import com.tickmine.domain.model.ChatMessage;
 import com.tickmine.domain.model.ChatResponse;
 import com.tickmine.domain.model.ExecutionResult;
 import com.tickmine.domain.model.Goal;
-import com.tickmine.domain.model.GoalAnalysis;
 import com.tickmine.domain.model.GoalContext;
 import com.tickmine.domain.model.GoalPhase;
 import com.tickmine.domain.model.GoalStatus;
-import com.tickmine.domain.model.IntentClassification;
-import com.tickmine.domain.model.MilestoneDsl;
 import com.tickmine.domain.model.PlanDsl;
-import com.tickmine.domain.model.TaskDsl;
 import com.tickmine.domain.model.ToolCallRecord;
-import com.tickmine.domain.port.ChatAssistant;
-import com.tickmine.domain.port.GoalAnalysisService;
-import com.tickmine.domain.port.IntentClassifier;
+import com.tickmine.domain.port.AgentOrchestrator;
 import com.tickmine.domain.port.PlanExecutor;
 import com.tickmine.domain.port.Planner;
-import com.tickmine.domain.port.PromptTemplateLoader;
-import com.tickmine.domain.port.TaskQueryService;
+import com.tickmine.domain.util.ToolCallCollector;
 import com.tickmine.infra.persistence.entity.GoalEntity;
 import com.tickmine.infra.persistence.entity.PlanEntity;
 import com.tickmine.infra.persistence.entity.PlanExecutionEntity;
@@ -31,19 +25,12 @@ import com.tickmine.infra.persistence.mapper.DomainMapper;
 import com.tickmine.infra.persistence.repository.GoalRepository;
 import com.tickmine.infra.persistence.repository.PlanExecutionRepository;
 import com.tickmine.infra.persistence.repository.PlanRepository;
-import com.tickmine.domain.util.ToolCallCollector;
-import com.tickmine.infra.service.ChatStreamPrepareResult.LlmReplySource;
+import com.tickmine.infra.service.ChatStreamPrepareResult.AgentStreamReplySource;
 import com.tickmine.infra.service.ChatStreamPrepareResult.ReplySource;
-import com.tickmine.infra.service.ChatStreamPrepareResult.StaticReplySource;
 import java.time.Instant;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,14 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GoalAgentService {
 
-    private static final String CHAT_SYSTEM_PROMPT =
-            "你是 TickMine 任务管理助手。用简洁自然的中文回复，不要编造用户未提及的场景。";
-
     private final QuotaService quotaService;
     private final ConversationService conversationService;
-    private final GoalAnalysisService goalAnalyzer;
-    private final IntentClassifier intentClassifier;
-    private final TaskQueryService taskQueryService;
     private final Planner planner;
     private final PlanExecutor planExecutor;
     private final UserService userService;
@@ -67,8 +48,7 @@ public class GoalAgentService {
     private final PlanRepository planRepository;
     private final PlanExecutionRepository planExecutionRepository;
     private final DomainMapper mapper;
-    private final PromptTemplateLoader promptLoader;
-    private final ChatAssistant chatAssistant;
+    private final AgentOrchestrator agentOrchestrator;
 
     @Transactional
     public ChatResponse handleChat(String userId, String message, UUID goalId) {
@@ -85,115 +65,93 @@ public class GoalAgentService {
             userService.findOrCreate(userId);
             quotaService.checkAndConsume(userId);
 
-            Goal existingGoal = loadGoalIfPresent(userId, goalId);
-            GoalPhase currentPhase = existingGoal != null ? existingGoal.getPhase() : null;
-            List<ChatMessage> priorHistory =
-                    existingGoal != null ? conversationService.loadHistory(userId, existingGoal.getId()) : List.of();
-
-            IntentClassification classification =
-                    intentClassifier.classify(userId, message, currentPhase, priorHistory);
-            ChatIntent intent = classification.intent();
-
-            Goal goal = resolveGoalForIntent(userId, message, existingGoal, intent);
+            Goal goal = resolveGoal(userId, goalId, message);
             conversationService.appendMessage(
-                    userId, goal.getId(), new ChatMessage("user", message, Instant.now()));
+                    userId,
+                    goal.getId(),
+                    new ChatMessage("user", message, Instant.now()));
 
             List<ChatMessage> history = conversationService.loadHistory(userId, goal.getId());
+            AgentRunOutcome outcome = new AgentRunOutcome();
+            AgentRunRequest agentRequest = new AgentRunRequest(
+                    userId,
+                    goal,
+                    history,
+                    outcome,
+                    (activeGoal, plan) -> {
+                        activeGoal.setPhase(GoalPhase.PLAN_READY);
+                        activeGoal.setStatus(GoalStatus.ACTIVE);
+                        outcome.setPlan(plan);
+                        outcome.setResponsePhase(GoalPhase.PLAN_READY);
+                    });
 
-            ChatStreamPrepareResult prep =
-                    switch (intent) {
-                        case QUERY -> prepareQuery(userId, goal, message);
-                        case CHAT -> prepareFreeChat(userId, goal, history);
-                        default -> preparePlanning(userId, goal, history);
-                    };
-            return withToolCalls(prep);
+            return new ChatStreamPrepareResult(
+                    goal,
+                    userId,
+                    new AgentStreamReplySource(agentRequest),
+                    GoalPhase.CHAT,
+                    null,
+                    null,
+                    List.of(),
+                    agentRequest);
         } catch (RuntimeException exception) {
             ToolCallCollector.discard();
             throw exception;
         }
     }
 
-    private ChatStreamPrepareResult withToolCalls(ChatStreamPrepareResult prep) {
-        return new ChatStreamPrepareResult(
-                prep.goal(),
-                prep.userId(),
-                prep.replySource(),
-                prep.responsePhase(),
-                prep.plan(),
-                prep.missingFields(),
-                ToolCallCollector.drain());
-    }
-
     public void emitStreamReply(ChatStreamPrepareResult prep, Consumer<String> onDelta) {
         ReplySource source = prep.replySource();
-        if (source instanceof LlmReplySource llm) {
-            chatAssistant.streamChat(llm.userId(), llm.systemPrompt(), llm.userPrompt(), onDelta);
+        if (source instanceof AgentStreamReplySource agent) {
+            agentOrchestrator.streamRun(agent.request(), onDelta);
             return;
         }
-        if (source instanceof StaticReplySource stat) {
+        if (source instanceof ChatStreamPrepareResult.LlmReplySource) {
+            throw new IllegalStateException("Legacy LLM reply path is no longer supported");
+        }
+        if (source instanceof ChatStreamPrepareResult.StaticReplySource stat) {
             streamStaticText(stat.text(), onDelta);
         }
     }
 
     @Transactional
     public ChatResponse finalizeStreamChat(ChatStreamPrepareResult prep, String fullReply) {
+        List<ToolCallRecord> toolCalls = ToolCallCollector.drain();
+        AgentRunOutcome outcome = prep.agentRequest() != null
+                ? prep.agentRequest().outcome()
+                : new AgentRunOutcome();
+        PlanDsl plan = outcome.plan();
+        GoalPhase phase = plan != null ? GoalPhase.PLAN_READY : GoalPhase.CHAT;
+        if (plan == null) {
+            prep.goal().setPhase(GoalPhase.CHAT);
+        } else {
+            savePlan(prep.goal().getId(), plan);
+        }
+
         saveGoal(prep.goal());
         conversationService.appendMessage(
                 prep.userId(),
                 prep.goal().getId(),
                 new ChatMessage("assistant", fullReply, Instant.now()));
 
-        return switch (prep.responsePhase()) {
-            case COLLECTING -> ChatResponse.collecting(
-                    prep.goal().getId(), fullReply, prep.missingFields(), prep.toolCalls());
+        return switch (phase) {
             case PLAN_READY -> ChatResponse.planReady(
-                    prep.goal().getId(), fullReply, prep.plan(), prep.toolCalls());
-            default -> ChatResponse.chat(prep.goal().getId(), fullReply, prep.toolCalls());
+                    prep.goal().getId(), fullReply, plan, toolCalls);
+            default -> ChatResponse.chat(prep.goal().getId(), fullReply, toolCalls);
         };
     }
 
-    private ChatStreamPrepareResult prepareQuery(String userId, Goal goal, String message) {
-        String reply = taskQueryService.answerQuery(userId, message);
-        goal.setPhase(GoalPhase.CHAT);
-        return new ChatStreamPrepareResult(
-                goal, userId, new StaticReplySource(reply), GoalPhase.CHAT, null, null, List.of());
-    }
-
-    private ChatStreamPrepareResult prepareFreeChat(String userId, Goal goal, List<ChatMessage> history) {
-        goal.setPhase(GoalPhase.CHAT);
-        ReplySource replySource = new LlmReplySource(
-                userId,
-                CHAT_SYSTEM_PROMPT,
-                promptLoader.load(
-                        "chat.st", Map.of("conversation", formatHistory(history))));
-        return new ChatStreamPrepareResult(goal, userId, replySource, GoalPhase.CHAT, null, null, List.of());
-    }
-
-    private ChatStreamPrepareResult preparePlanning(String userId, Goal goal, List<ChatMessage> history) {
-        GoalAnalysis analysis = goalAnalyzer.analyze(userId, goal, history);
-
-        if (goal.getContext() == null) {
-            goal.setContext(new GoalContext());
+    private Goal resolveGoal(String userId, UUID goalId, String message) {
+        if (goalId != null) {
+            GoalEntity entity = goalRepository
+                    .findById(goalId)
+                    .orElseThrow(() -> new GoalNotFoundException(goalId));
+            if (!entity.getUserId().equals(userId)) {
+                throw new GoalNotFoundException(goalId);
+            }
+            return mapper.toDomain(entity);
         }
-        goal.getContext().merge(analysis.extractedAttributes());
-        if (analysis.suggestedTitle() != null && !analysis.suggestedTitle().isBlank()) {
-            goal.setTitle(analysis.suggestedTitle());
-        }
-        applyExtractedTargetDate(goal);
-
-        PlanDsl plan = planner.generatePlan(goal, goal.getContext());
-        savePlan(goal.getId(), plan);
-        goal.setPhase(GoalPhase.PLAN_READY);
-        goal.setStatus(GoalStatus.ACTIVE);
-        String preview = formatPlanPreview(plan);
-        return new ChatStreamPrepareResult(
-                goal,
-                userId,
-                new StaticReplySource(preview),
-                GoalPhase.PLAN_READY,
-                plan,
-                null,
-                List.of());
+        return createGoalEntity(userId, truncate(message, 50), GoalPhase.CHAT);
     }
 
     private static void streamStaticText(String text, Consumer<String> onDelta) {
@@ -358,36 +316,6 @@ public class GoalAgentService {
         }
     }
 
-    private Goal loadGoalIfPresent(String userId, UUID goalId) {
-        if (goalId == null) {
-            return null;
-        }
-        GoalEntity entity = goalRepository
-                .findById(goalId)
-                .orElseThrow(() -> new GoalNotFoundException(goalId));
-        if (!entity.getUserId().equals(userId)) {
-            throw new GoalNotFoundException(goalId);
-        }
-        return mapper.toDomain(entity);
-    }
-
-    private Goal resolveGoalForIntent(
-            String userId, String message, Goal existingGoal, ChatIntent intent) {
-        if (intent == ChatIntent.PLAN) {
-            if (existingGoal != null
-                    && (existingGoal.getPhase() == GoalPhase.COLLECTING
-                            || existingGoal.getPhase() == GoalPhase.PLAN_READY)) {
-                return existingGoal;
-            }
-            return createGoalEntity(userId, message, GoalPhase.COLLECTING);
-        }
-
-        if (existingGoal != null && existingGoal.getPhase() == GoalPhase.CHAT) {
-            return existingGoal;
-        }
-        return createGoalEntity(userId, truncate(message, 50), GoalPhase.CHAT);
-    }
-
     private Goal createGoalEntity(String userId, String message, GoalPhase phase) {
         Instant now = Instant.now();
         GoalEntity entity = new GoalEntity();
@@ -440,102 +368,6 @@ public class GoalAgentService {
         planExecutionRepository.save(execution);
     }
 
-    private static void applyExtractedTargetDate(Goal goal) {
-        if (goal.getTargetDate() != null || goal.getContext() == null) {
-            return;
-        }
-        Object rawDate = goal.getContext().getAttributes().get("targetDate");
-        if (!(rawDate instanceof String dateText) || dateText.isBlank()) {
-            return;
-        }
-        try {
-            goal.setTargetDate(LocalDate.parse(dateText));
-        } catch (DateTimeParseException ignored) {
-            // LLM may return non-ISO values; planner still has todayDate fallback.
-        }
-    }
-
-    private static String formatPlanPreview(PlanDsl plan) {
-        StringBuilder sb = new StringBuilder();
-        if (plan.useInbox()) {
-            sb.append("已为您生成待办，确认后将写入收集箱：\n");
-            appendTasks(sb, plan);
-            sb.append("\n请确认后写入收集箱。");
-            return sb.toString();
-        }
-
-        sb.append("已为您生成计划「").append(plan.projectName()).append("」：\n");
-        for (MilestoneDsl milestone : plan.milestones()) {
-            sb.append("\n## ").append(milestone.name()).append("\n");
-            appendTasks(sb, milestone.tasks());
-        }
-        sb.append("\n请确认后执行计划。");
-        return sb.toString();
-    }
-
-    private static void appendTasks(StringBuilder sb, PlanDsl plan) {
-        for (MilestoneDsl milestone : plan.milestones()) {
-            appendTasks(sb, milestone.tasks());
-        }
-    }
-
-    private static void appendTasks(StringBuilder sb, List<TaskDsl> tasks) {
-        for (int i = 0; i < tasks.size(); i++) {
-            TaskDsl task = tasks.get(i);
-            sb.append(i + 1).append(". ").append(task.title());
-            appendTaskMeta(sb, task);
-            sb.append("\n");
-            appendChecklistPreview(sb, task);
-        }
-    }
-
-    private static void appendTaskMeta(StringBuilder sb, TaskDsl task) {
-        boolean hasMeta = false;
-        StringBuilder meta = new StringBuilder(" [");
-        if (task.priority() != null && !task.priority().isBlank()) {
-            meta.append(formatPriority(task.priority()));
-            hasMeta = true;
-        }
-        if (task.estimatedDuration() != null && !task.estimatedDuration().isBlank()) {
-            if (hasMeta) {
-                meta.append(" · ");
-            }
-            meta.append("预计").append(task.estimatedDuration());
-            hasMeta = true;
-        }
-        if (task.dueDate() != null) {
-            if (hasMeta) {
-                meta.append(" · ");
-            }
-            meta.append(task.dueDate());
-            if (task.dueTime() != null && !task.dueTime().isBlank()) {
-                meta.append(" ").append(task.dueTime());
-            }
-            hasMeta = true;
-        }
-        if (hasMeta) {
-            meta.append(']');
-            sb.append(meta);
-        }
-    }
-
-    private static void appendChecklistPreview(StringBuilder sb, TaskDsl task) {
-        if (task.checklistItems() == null || task.checklistItems().isEmpty()) {
-            return;
-        }
-        for (var item : task.checklistItems()) {
-            sb.append("   - ").append(item.title()).append("\n");
-        }
-    }
-
-    private static String formatPriority(String priority) {
-        return switch (priority.toLowerCase()) {
-            case "high" -> "高优先级";
-            case "low" -> "低优先级";
-            default -> "中优先级";
-        };
-    }
-
     private static String truncate(String value, int maxLength) {
         if (value == null) {
             return "";
@@ -543,32 +375,9 @@ public class GoalAgentService {
         return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
-    private static String nullToEmpty(String value) {
-        return value != null ? value : "";
-    }
-
     public record GoalDetail(Goal goal, PlanDsl latestPlan) {}
 
     public record GoalListItem(Goal goal, String preview, Instant updatedAt) {}
 
     public record GoalConversation(Goal goal, PlanDsl latestPlan, List<ChatMessage> messages) {}
-
-    private static String formatAttributes(Map<String, Object> attributes) {
-        if (attributes == null || attributes.isEmpty()) {
-            return "（暂无）";
-        }
-        return attributes.entrySet().stream()
-                .map(entry -> entry.getKey() + ": " + entry.getValue())
-                .collect(Collectors.joining("\n"));
-    }
-
-    private static String formatHistory(List<ChatMessage> history) {
-        if (history == null || history.isEmpty()) {
-            return "（暂无对话）";
-        }
-        int start = Math.max(0, history.size() - 10);
-        return history.subList(start, history.size()).stream()
-                .map(msg -> msg.role() + ": " + msg.content())
-                .collect(Collectors.joining("\n"));
-    }
 }
