@@ -1,0 +1,9 @@
+**/node_modules
+**/target
+.git
+**/.env*
+tickmine-web/dist
+docs
+*.md
+.vscode
+.cursor

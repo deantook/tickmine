@@ -1,0 +1,35 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+
+COPY tickmine-api/agent-server/pom.xml .
+COPY tickmine-api/agent-server/agent-domain/pom.xml agent-domain/
+COPY tickmine-api/agent-server/agent-infra/pom.xml agent-infra/
+COPY tickmine-api/agent-server/agent-llm/pom.xml agent-llm/
+COPY tickmine-api/agent-server/agent-mcp/pom.xml agent-mcp/
+COPY tickmine-api/agent-server/agent-planner/pom.xml agent-planner/
+COPY tickmine-api/agent-server/agent-executor/pom.xml agent-executor/
+COPY tickmine-api/agent-server/agent-api/pom.xml agent-api/
+COPY tickmine-api/agent-server/agent-boot/pom.xml agent-boot/
+
+RUN mvn -q dependency:go-offline -pl agent-boot -am
+
+COPY tickmine-api/agent-server/agent-domain agent-domain
+COPY tickmine-api/agent-server/agent-infra agent-infra
+COPY tickmine-api/agent-server/agent-llm agent-llm
+COPY tickmine-api/agent-server/agent-mcp agent-mcp
+COPY tickmine-api/agent-server/agent-planner agent-planner
+COPY tickmine-api/agent-server/agent-executor agent-executor
+COPY tickmine-api/agent-server/agent-api agent-api
+COPY tickmine-api/agent-server/agent-boot agent-boot
+
+RUN mvn -q package -pl agent-boot -am -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+COPY --from=build /app/agent-boot/target/agent-boot-*.jar app.jar
+
+ENV PORT=8080
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT}"]
