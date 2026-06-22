@@ -53,7 +53,7 @@ export function MessageList({
   }
 
   return (
-    <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+    <div className="flex-1 space-y-6 overflow-y-auto py-6">
       {messages.map((msg, i) => (
         <MessageBubble
           key={i}

@@ -20,9 +20,9 @@ export function ChatInput({ disabled, onSend }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="sticky bottom-0 border-t border-[#e8e8e4] bg-[#fafaf8] px-6 py-4"
+      className="sticky bottom-0 border-t border-[#e8e8e4] bg-[#fafaf8] py-4"
     >
-      <div className="mx-auto flex max-w-2xl gap-3">
+      <div className="flex gap-3">
         <div className="flex flex-1 border border-[#dcdcd8] bg-white focus-within:border-[#aaa]">
           <textarea
             value={text}

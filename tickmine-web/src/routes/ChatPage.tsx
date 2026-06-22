@@ -39,16 +39,18 @@ export function ChatPage() {
           collapsed={historyCollapsed}
           onToggleCollapsed={toggleHistoryCollapsed}
         />
-        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
-          <MessageList
-            messages={messages}
-            goalId={currentGoalId}
-            isLoading={isLoading}
-            executing={executing}
-            onExecute={handleExecute}
-            onQuickAction={sendMessage}
-          />
-          <ChatInput disabled={isLoading || executing} onSend={sendMessage} />
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="mx-auto flex h-full w-full max-w-4xl min-h-0 flex-1 flex-col px-4">
+            <MessageList
+              messages={messages}
+              goalId={currentGoalId}
+              isLoading={isLoading}
+              executing={executing}
+              onExecute={handleExecute}
+              onQuickAction={sendMessage}
+            />
+            <ChatInput disabled={isLoading || executing} onSend={sendMessage} />
+          </div>
         </main>
       </div>
     </div>

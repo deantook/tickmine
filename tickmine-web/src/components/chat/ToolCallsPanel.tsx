@@ -21,7 +21,7 @@ export function ToolCallsPanel({ toolCalls, className }: Props) {
   return (
     <div className={cn('space-y-2', className)}>
       <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#8a8a84]">
-        MCP 工具调用 ({toolCalls.length})
+        tool call ({toolCalls.length})
       </p>
       {toolCalls.map((call, index) => (
         <details
@@ -43,13 +43,13 @@ export function ToolCallsPanel({ toolCalls, className }: Props) {
           </summary>
           <div className="space-y-3 border-t border-[#e8e8e4] px-3 py-2">
             <div>
-              <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a84]">入参</p>
+              <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a84]">in</p>
               <pre className="max-h-48 overflow-auto border border-[#e8e8e4] bg-white px-2 py-1.5 font-mono text-[11px] leading-relaxed text-[#3d3d3a]">
                 {formatJson(call.input)}
               </pre>
             </div>
             <div>
-              <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a84]">出参</p>
+              <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8a8a84]">out</p>
               <pre className="max-h-48 overflow-auto border border-[#e8e8e4] bg-white px-2 py-1.5 font-mono text-[11px] leading-relaxed text-[#3d3d3a]">
                 {call.success ? formatJson(call.output) : call.errorMessage ?? '未知错误'}
               </pre>
