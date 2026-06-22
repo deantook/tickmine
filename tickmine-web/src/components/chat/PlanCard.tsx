@@ -11,6 +11,48 @@ interface Props {
   onConfirm: () => void;
 }
 
+function formatPriority(priority?: string) {
+  switch (priority?.toLowerCase()) {
+    case 'high':
+      return '高';
+    case 'low':
+      return '低';
+    default:
+      return priority ? '中' : null;
+  }
+}
+
+function TaskLine({ task, index }: { task: PlanDsl['milestones'][0]['tasks'][0]; index?: number }) {
+  const priority = formatPriority(task.priority);
+  return (
+    <li className="text-[14px] text-[#2d2d2a]">
+      {index != null && <span className="mr-1 text-[12px] text-[#8a8a84]">{index}.</span>}
+      {task.title}
+      {(priority || task.estimatedDuration || task.dueDate) && (
+        <span className="ml-2 text-[12px] text-[#8a8a84]">
+          {priority && <span className="mr-2">{priority}</span>}
+          {task.estimatedDuration && <span className="mr-2">预计{task.estimatedDuration}</span>}
+          {task.dueDate && (
+            <span>
+              {task.dueDate}
+              {task.dueTime ? ` ${task.dueTime}` : ''}
+            </span>
+          )}
+        </span>
+      )}
+      {task.checklistItems && task.checklistItems.length > 0 && (
+        <ul className="mt-1 space-y-0.5 border-l border-[#e8e8e4] pl-3">
+          {task.checklistItems.map((item) => (
+            <li key={item.title} className="text-[12px] text-[#5c5c58]">
+              {item.title}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export function PlanCard({ plan, executed, executing, onConfirm }: Props) {
   const useInbox = plan.destination === 'inbox';
 
@@ -27,17 +69,7 @@ export function PlanCard({ plan, executed, executing, onConfirm }: Props) {
           <li>
             <ul className="space-y-1">
               {plan.milestones.flatMap((m) =>
-                m.tasks.map((t) => (
-                  <li key={t.title} className="text-[14px] text-[#2d2d2a]">
-                    {t.title}
-                    {t.dueDate && (
-                      <span className="ml-2 text-[12px] text-[#8a8a84]">
-                        {t.dueDate}
-                        {t.dueTime ? ` ${t.dueTime}` : ''}
-                      </span>
-                    )}
-                  </li>
-                )),
+                m.tasks.map((t, i) => <TaskLine key={`${m.name}-${t.title}-${i}`} task={t} index={i + 1} />),
               )}
             </ul>
           </li>
@@ -48,16 +80,8 @@ export function PlanCard({ plan, executed, executing, onConfirm }: Props) {
                 {m.name}
               </p>
               <ul className="mt-1 space-y-1 border-l border-[#e8e8e4] pl-3">
-                {m.tasks.map((t) => (
-                  <li key={t.title} className="text-[14px] text-[#2d2d2a]">
-                    {t.title}
-                    {t.dueDate && (
-                      <span className="ml-2 text-[12px] text-[#8a8a84]">
-                        {t.dueDate}
-                        {t.dueTime ? ` ${t.dueTime}` : ''}
-                      </span>
-                    )}
-                  </li>
+                {m.tasks.map((t, i) => (
+                  <TaskLine key={`${m.name}-${t.title}-${i}`} task={t} index={i + 1} />
                 ))}
               </ul>
             </li>

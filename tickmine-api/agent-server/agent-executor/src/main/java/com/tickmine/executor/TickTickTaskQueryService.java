@@ -144,7 +144,7 @@ public class TickTickTaskQueryService implements TaskQueryService {
                 .append(undated.size())
                 .append(" 项）：\n");
         appendTaskLines(sb, undated, false);
-        sb.append("\n如需规划新目标，直接告诉我，比如「下午三点去大润发买菜」。");
+        sb.append("\n如需规划新目标，直接告诉我，比如").append(PlanningHintExamples.randomQuoted()).append("。");
         return sb.toString().trim();
     }
 
@@ -157,7 +157,7 @@ public class TickTickTaskQueryService implements TaskQueryService {
         };
         StringBuilder sb = new StringBuilder(header);
         appendTaskLines(sb, tasks, true);
-        sb.append("\n如需规划新目标，直接告诉我，比如「帮我策划一场婚礼」。");
+        sb.append("\n如需规划新目标，直接告诉我，比如").append(PlanningHintExamples.randomQuoted()).append("。");
         return sb.toString().trim();
     }
 

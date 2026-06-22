@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from '@/stores/sessionStore';
 import { MessageBubble } from './MessageBubble';
+import { pickRandomPlanningHints } from '@/lib/planningHints';
 
 interface Props {
   messages: ChatMessage[];
@@ -11,11 +12,6 @@ interface Props {
   onQuickAction?: (text: string) => void;
 }
 
-const QUICK_ACTIONS = [
-  '帮我把今天的事理一理',
-  '我要策划一场婚礼',
-];
-
 export function MessageList({
   messages,
   goalId,
@@ -25,6 +21,7 @@ export function MessageList({
   onQuickAction,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [quickActions] = useState(() => pickRandomPlanningHints(2));
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,7 +33,7 @@ export function MessageList({
         <p className="text-[14px] text-[#bbb]">说说你想完成的事</p>
         {onQuickAction && (
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-            {QUICK_ACTIONS.map((text) => (
+            {quickActions.map((text) => (
               <button
                 key={text}
                 type="button"

@@ -75,6 +75,12 @@ public class TickTickPlanExecutor implements PlanExecutor {
                     .toList();
         }
         return TaskDateMapper.applyDates(
-                task, projectId, parentId, PriorityMapper.toTickTick(task.priority()), kind, items);
+                task,
+                projectId,
+                parentId,
+                PriorityMapper.toTickTick(task.priority()),
+                kind,
+                items,
+                TaskContentFormatter.format(task));
     }
 }

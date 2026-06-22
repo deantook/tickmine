@@ -480,17 +480,60 @@ public class GoalAgentService {
     }
 
     private static void appendTasks(StringBuilder sb, List<TaskDsl> tasks) {
-        for (TaskDsl task : tasks) {
-            sb.append("- ").append(task.title());
-            if (task.dueDate() != null) {
-                sb.append(" (").append(task.dueDate());
-                if (task.dueTime() != null && !task.dueTime().isBlank()) {
-                    sb.append(" ").append(task.dueTime());
-                }
-                sb.append(")");
-            }
+        for (int i = 0; i < tasks.size(); i++) {
+            TaskDsl task = tasks.get(i);
+            sb.append(i + 1).append(". ").append(task.title());
+            appendTaskMeta(sb, task);
             sb.append("\n");
+            appendChecklistPreview(sb, task);
         }
+    }
+
+    private static void appendTaskMeta(StringBuilder sb, TaskDsl task) {
+        boolean hasMeta = false;
+        StringBuilder meta = new StringBuilder(" [");
+        if (task.priority() != null && !task.priority().isBlank()) {
+            meta.append(formatPriority(task.priority()));
+            hasMeta = true;
+        }
+        if (task.estimatedDuration() != null && !task.estimatedDuration().isBlank()) {
+            if (hasMeta) {
+                meta.append(" · ");
+            }
+            meta.append("预计").append(task.estimatedDuration());
+            hasMeta = true;
+        }
+        if (task.dueDate() != null) {
+            if (hasMeta) {
+                meta.append(" · ");
+            }
+            meta.append(task.dueDate());
+            if (task.dueTime() != null && !task.dueTime().isBlank()) {
+                meta.append(" ").append(task.dueTime());
+            }
+            hasMeta = true;
+        }
+        if (hasMeta) {
+            meta.append(']');
+            sb.append(meta);
+        }
+    }
+
+    private static void appendChecklistPreview(StringBuilder sb, TaskDsl task) {
+        if (task.checklistItems() == null || task.checklistItems().isEmpty()) {
+            return;
+        }
+        for (var item : task.checklistItems()) {
+            sb.append("   - ").append(item.title()).append("\n");
+        }
+    }
+
+    private static String formatPriority(String priority) {
+        return switch (priority.toLowerCase()) {
+            case "high" -> "高优先级";
+            case "low" -> "低优先级";
+            default -> "中优先级";
+        };
     }
 
     private static String truncate(String value, int maxLength) {

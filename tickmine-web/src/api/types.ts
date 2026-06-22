@@ -45,6 +45,7 @@ export interface TaskDsl {
   dueDate?: string;
   dueTime?: string;
   checklistItems?: { title: string }[];
+  estimatedDuration?: string;
 }
 
 export interface ExecutionResult {

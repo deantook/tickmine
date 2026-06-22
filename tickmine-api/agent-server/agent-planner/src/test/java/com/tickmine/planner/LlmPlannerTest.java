@@ -78,5 +78,7 @@ class LlmPlannerTest {
         assertThat(prompt).contains("guestCount: 150");
         assertThat(prompt).contains("2026-10-01");
         assertThat(prompt).contains("2026-06-22");
+        assertThat(prompt).contains("任务顺序");
+        assertThat(prompt).contains("estimatedDuration");
     }
 }

@@ -9,11 +9,22 @@ public record TaskDsl(
         String priority,
         LocalDate dueDate,
         String dueTime,
-        List<ChecklistItemDsl> checklistItems
+        List<ChecklistItemDsl> checklistItems,
+        String estimatedDuration
 ) {
     public TaskDsl {
         if (checklistItems == null) {
             checklistItems = List.of();
         }
+    }
+
+    public TaskDsl(
+            String title,
+            String description,
+            String priority,
+            LocalDate dueDate,
+            String dueTime,
+            List<ChecklistItemDsl> checklistItems) {
+        this(title, description, priority, dueDate, dueTime, checklistItems, null);
     }
 }

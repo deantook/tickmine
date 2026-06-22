@@ -17,7 +17,8 @@ final class TaskDateMapper {
             String parentId,
             Integer priority,
             String kind,
-            List<TickTickTaskRequest.ChecklistItem> items) {
+            List<TickTickTaskRequest.ChecklistItem> items,
+            String content) {
         ZoneId zone = TickTickDates.DEFAULT_ZONE;
         LocalTime time = TickTickDates.parseTime(task.dueTime());
         String instant = null;
@@ -29,7 +30,7 @@ final class TaskDateMapper {
         return new TickTickTaskRequest(
                 task.title(),
                 projectId,
-                task.description(),
+                content,
                 priority,
                 instant,
                 instant,
