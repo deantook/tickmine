@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
+import { HomeRoute } from '@/routes/HomeRoute';
 import { RootRedirect } from '@/routes/RootRedirect';
 import { LoginPage } from '@/routes/LoginPage';
 import { RegisterPage } from '@/routes/RegisterPage';
@@ -9,7 +10,7 @@ import { SettingsPage } from '@/routes/SettingsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated());
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -32,7 +33,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route
           path="/login"
           element={

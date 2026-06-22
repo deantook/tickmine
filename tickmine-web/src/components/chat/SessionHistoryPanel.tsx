@@ -194,7 +194,7 @@ export function SessionHistoryPanel({ collapsed, onToggleCollapsed }: SessionHis
               ) : confirmClear ? (
                 '确认清空全部？'
               ) : (
-                '一键清除全部'
+                '清空历史会话'
               )}
             </Button>
           </div>
