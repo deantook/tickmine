@@ -1,0 +1,67 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: tickmine-agent
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://47.110.73.7:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:dean123}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:47.110.73.7}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:dean123}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.tickmine.llm: INFO
+    com.tickmine.mcp: INFO
+
+tickmine:
+  encryption:
+    # Base64 of 32-byte key; override via TICKMINE_ENCRYPTION_KEY in production
+    secret-key: ${TICKMINE_ENCRYPTION_KEY:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
+  models:
+    FREE:
+      provider: deepseek
+      model: deepseek-chat
+      base-url: https://api.deepseek.com
+    VIP:
+      provider: deepseek
+      model: deepseek-chat
+      base-url: https://api.deepseek.com
+    SVIP:
+      provider: qwen
+      model: qwen-plus
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  quota:
+    FREE:
+      daily-chat-limit: 10
+    VIP:
+      daily-chat-limit: -1
+    SVIP:
+      daily-chat-limit: -1
+  auth:
+    jwt-secret: ${TICKMINE_JWT_SECRET:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUYwMTIzNDU2Nzg5QUJDREVG}
+    token-ttl-hours: 168
+  llm:
+    deepseek-api-key: ${DEEPSEEK_API_KEY}
+    qwen-api-key: ${QWEN_API_KEY}
+  ticktick:
+    # 滴答清单（国内版）用 dida365；国际版 TickTick 改为 https://api.ticktick.com/open/v1
+    base-url: https://api.dida365.com/open/v1
+    default-timezone: Asia/Shanghai

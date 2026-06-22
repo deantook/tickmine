@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: tickmine
+    password: tickmine
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+tickmine:
+  encryption:
+    secret-key: MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=
+  models:
+    FREE:
+      provider: deepseek
+      model: deepseek-chat
+      base-url: https://api.deepseek.com
+    VIP:
+      provider: deepseek
+      model: deepseek-chat
+      base-url: https://api.deepseek.com
+    SVIP:
+      provider: qwen
+      model: qwen-plus
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  quota:
+    FREE:
+      daily-chat-limit: 10
+    VIP:
+      daily-chat-limit: -1
+    SVIP:
+      daily-chat-limit: -1
+  llm:
+    deepseek-api-key: test-deepseek-key
+    qwen-api-key: test-qwen-key
+  auth:
+    jwt-secret: MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUYwMTIzNDU2Nzg5QUJDREVG
+    token-ttl-hours: 168
