@@ -18,10 +18,18 @@ import org.springframework.stereotype.Service;
 public class LlmIntentClassifier implements IntentClassifier {
 
     private static final Pattern QUERY_PATTERN = Pattern.compile(
-            "(今天|今日|明天|本周|这周|待办|todo|任务|清单|有什么要做|哪些事|几件事)",
+            "((今天|今日|明天|本周|这周).*(有哪些|有什么|几件事|多少项|多少|哪些))"
+                    + "|((有哪些|有什么|看看|列出|查询|查一下).*(待办|todo|任务|清单|事))"
+                    + "|((待办|todo|任务|清单).*(有哪些|列表|看看|查))",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PLAN_PATTERN = Pattern.compile(
             "(策划|规划|帮我.*计划|制定.*计划|安排|筹备|组织|准备.*(婚礼|旅行|活动|项目|考试|搬家))",
+            Pattern.CASE_INSENSITIVE);
+    /** User states a future action with time/place — schedule a task, not query existing todos. */
+    private static final Pattern SCHEDULE_PATTERN = Pattern.compile(
+            "(我要|我要去|得去|需要去|记得|提醒我|帮我).*(去|做|买|参加|拆|取|缴|还|看)"
+                    + "|(今天|明日|明天|后天).*(上午|下午|晚上|\\d{1,2}[点:：]).*(去|做|买|参加|拆|取|缴|还)"
+                    + "|.*(下午|上午|晚上|\\d{1,2}[点:：]).*(去|做|买|参加|拆|取|缴|还)",
             Pattern.CASE_INSENSITIVE);
 
     private final AgentChatService chatService;
@@ -49,11 +57,11 @@ public class LlmIntentClassifier implements IntentClassifier {
             return new IntentClassification(ChatIntent.CHAT);
         }
 
-        if (QUERY_PATTERN.matcher(text).find() && !PLAN_PATTERN.matcher(text).find()) {
-            return new IntentClassification(ChatIntent.QUERY);
-        }
-        if (PLAN_PATTERN.matcher(text).find()) {
+        if (PLAN_PATTERN.matcher(text).find() || SCHEDULE_PATTERN.matcher(text).find()) {
             return new IntentClassification(ChatIntent.PLAN);
+        }
+        if (QUERY_PATTERN.matcher(text).find()) {
+            return new IntentClassification(ChatIntent.QUERY);
         }
         if (currentPhase == GoalPhase.COLLECTING || currentPhase == GoalPhase.PLAN_READY) {
             return new IntentClassification(ChatIntent.PLAN);

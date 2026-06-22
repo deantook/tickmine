@@ -12,6 +12,7 @@
 - CHAT：闲聊、问能力、打招呼、与任务管理无关的一般对话
 
 规则：
-1. 查询类优先于规划类——用户问「今天有什么任务」时返回 QUERY，不是 PLAN
-2. 若 currentPhase 为 COLLECTING 或 PLAN_READY，用户可能在补充或调整规划，返回 PLAN
-3. 不确定时返回 CHAT
+1. 查询类优先于规划类——用户问「今天有什么任务」「明天有哪些待办」时返回 QUERY，不是 PLAN
+2. 用户描述未来要做的事（含时间/地点/动作，如「明天上午八点去医院拆线」「下午三点去大润发买菜」）返回 PLAN，不是 QUERY
+3. 若 currentPhase 为 COLLECTING 或 PLAN_READY，用户可能在补充或调整规划，返回 PLAN
+4. 不确定时返回 CHAT

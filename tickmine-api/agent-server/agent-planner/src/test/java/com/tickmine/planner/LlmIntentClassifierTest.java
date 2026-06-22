@@ -78,4 +78,31 @@ class LlmIntentClassifierTest {
 
         assertThat(result.intent()).isEqualTo(ChatIntent.QUERY);
     }
+
+    @Test
+    void classify_tomorrowScheduledAction_returnsPlanNotQuery() {
+        IntentClassification result = classifier.classify(
+                "user-1",
+                "明天上午八点我要去城阳区人民医院给手术刀口拆线",
+                null,
+                List.of());
+
+        assertThat(result.intent()).isEqualTo(ChatIntent.PLAN);
+    }
+
+    @Test
+    void classify_todayGroceryWithTime_returnsPlanNotQuery() {
+        IntentClassification result = classifier.classify(
+                "user-1", "下午三点去大润发买菜", null, List.of());
+
+        assertThat(result.intent()).isEqualTo(ChatIntent.PLAN);
+    }
+
+    @Test
+    void classify_tomorrowTasksQuery_returnsQuery() {
+        IntentClassification result = classifier.classify(
+                "user-1", "明天有哪些待办", null, List.of());
+
+        assertThat(result.intent()).isEqualTo(ChatIntent.QUERY);
+    }
 }
